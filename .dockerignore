@@ -1,0 +1,27 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Environment files
+.env
+.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Tasks directory (will be mounted as volume)
+tasks/
+
+# GitHub workflows
+.github/
+
+# Other files not needed in container
+get_access_token.py
