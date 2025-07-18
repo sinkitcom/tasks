@@ -1,0 +1,50 @@
+name: Export TickTick Tasks
+
+on:
+  workflow_call:
+    secrets:
+      TICKTICK_ACCESS_TOKEN:
+        description: 'TickTick API access token'
+        required: true
+    inputs:
+      export_path:
+        description: 'Path where to export tasks (default: tasks/)'
+        required: false
+        type: string
+        default: 'tasks/'
+      title_in_filename:
+        description: 'Include task title in filename'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  export-tasks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create tasks directory
+      run: mkdir -p ${{ inputs.export_path }}
+
+    - name: Export TickTick Tasks
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}/${{ inputs.export_path }}:/app/tasks \
+          -e TICKTICK_ACCESS_TOKEN="${{ secrets.TICKTICK_ACCESS_TOKEN }}" \
+          ghcr.io/sinkitcom/tasks:latest \
+          ${{ inputs.title_in_filename && '--title-in-filename' || '' }}
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "TickTick Export Action"
+        git add ${{ inputs.export_path }}
+        if ! git diff --cached --quiet; then
+          git commit -m "Update TickTick tasks export - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push
+        else
+          echo "No changes to commit"
+        fi
