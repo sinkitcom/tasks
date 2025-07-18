@@ -1,79 +1,79 @@
-# ticktick-export
+# TickTick Export
 
-A tool to export data from TickTick using their API.
+A Docker-based tool to automatically export your TickTick tasks to markdown files. Perfect for creating automated backups of your tasks in your own repositories.
 
-## Getting Started
+## What This Project Does
 
-### Step 1: Obtain Access Token
+This project provides:
+- **Docker container** that exports TickTick tasks to markdown files with frontmatter
+- **GitHub Action workflow** for automated hourly exports in your private repository  
+- **Markdown files** with structured frontmatter (status, priority, dates, etc.)
+- **Hierarchical task organization** with proper parent-child relationships
 
-Before you can export your TickTick data, you need to get an OAuth2 access token.
+## Quick Start
 
-#### Setup
+### Option 1: Use in GitHub Actions (Recommended)
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Add this reusable workflow to your private repository to automatically export your TickTick tasks every hour:
 
-2. **Configure credentials:**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with your TickTick application credentials:
-   - Get your `client_id` and `client_secret` from [TickTick Developer Center](https://developer.ticktick.com/)
-   - **Important:** In the TickTick Developer Center, you must add your `redirect_uri` to the allowed redirect URIs list for your application
-   - Set your `redirect_uri` in `.env` (e.g., `http://localhost:8080/callback` or `https://example.com/callback`)
-   - Configure `scope` (e.g., `tasks:read`)
+```yaml
+# .github/workflows/ticktick-export.yml
+name: Export TickTick Tasks
 
-#### Get Access Token
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # Manual trigger
 
-Run the OAuth flow to get your access token:
+jobs:
+  export:
+    uses: sinkitcom/tasks/.github/workflows/export.yml@main
+    secrets:
+      TICKTICK_ACCESS_TOKEN: ${{ secrets.TICKTICK_ACCESS_TOKEN }}
+```
+
+### Option 2: Run Docker Container Locally
 
 ```bash
-python3 get_access_token.py
+docker run --rm -v $(pwd)/tasks:/app/tasks \
+  -e TICKTICK_ACCESS_TOKEN=your_token_here \
+  ghcr.io/sinkitcom/tasks:latest
 ```
 
-The script will:
-1. Display the TickTick authorization URL
-2. Wait for you to paste the authorization code from the redirect URL
-3. Exchange it for an access token
-4. Display the access token for use in API requests
+## Setup
 
-## Troubleshooting
+1. **Get Access Token**: Follow the [access token guide](docs/getting-access-token.md)
+2. **Add Secret**: In your repository settings, add `TICKTICK_ACCESS_TOKEN` as a secret
+3. **Add Workflow**: Copy the workflow file above to `.github/workflows/ticktick-export.yml`
 
-### "invalid_request" - redirect_uri error
+## Output Format
 
-If you get an error like:
+Tasks are exported as markdown files with YAML frontmatter:
+
+```markdown
+---
+title: My Important Task
+project: Work
+icon: ⬜
+priority: 🔴
+dueDate: 2025-07-20 15:00:00
+---
+
+## Description
+Task description here
+
+## Subtasks
+- [[subtask-file|Subtask Title]]
 ```
-OAuth Error: error="invalid_request", error_description="At least one redirect_uri must be registered with the client."
-```
 
-This means you need to register your redirect URI in the TickTick Developer Center:
+## Documentation
 
-1. Go to [TickTick Developer Center](https://developer.ticktick.com/)
-2. Edit your application settings
-3. Add your redirect URI (e.g., `http://localhost:8080/callback`) to the allowed redirect URIs list
-4. Save the changes and try again
+- [Getting Access Token](docs/getting-access-token.md) - How to obtain TickTick API credentials
+- [Docker Usage](docs/docker-usage.md) - Advanced Docker configuration options
+- [Workflow Customization](docs/workflow-customization.md) - Customize the export workflow
 
-### Step 2: Export Your Data
+## Container Registry
 
-*Coming soon - scripts to export tasks, projects, and other TickTick data*
-
-## Development
-
-### OAuth2 Flow Details
-
-#### Environment Variables
-
-Required variables (set in `.env` file):
-- `TICKTICK_CLIENT_ID`: Your application's client ID
-- `TICKTICK_CLIENT_SECRET`: Your application's client secret  
-- `TICKTICK_REDIRECT_URI`: Your configured redirect URI
-- `TICKTICK_SCOPE`: Permission scope (space-separated)
-
-#### API Endpoints
-
-Based on the TickTick Open API OAuth2 flow:
-- Authorization endpoint: `https://ticktick.com/oauth/authorize`
-- Token endpoint: `https://ticktick.com/oauth/token`
-- Available scopes: `tasks:read`, `tasks:write`
+The Docker image is available at:
+- `ghcr.io/sinkitcom/tasks:latest`
+- `ghcr.io/sinkitcom/tasks:v1.0.0`

@@ -1,0 +1,26 @@
+# Example workflow file for customers
+# Copy this to your repository as .github/workflows/ticktick-export.yml
+
+name: Export TickTick Tasks
+
+on:
+  schedule:
+    # Runs every hour at minute 0
+    - cron: '0 * * * *'
+  
+  # Allows manual triggering
+  workflow_dispatch:
+
+jobs:
+  export:
+    uses: sinkitcom/tasks/.github/workflows/export.yml@main
+    with:
+      # Optional: Change export path (default: tasks/)
+      export_path: 'tasks/'
+      
+      # Optional: Include task titles in filenames (default: false)
+      title_in_filename: false
+    
+    secrets:
+      # Required: Add this secret in your repository settings
+      TICKTICK_ACCESS_TOKEN: ${{ secrets.TICKTICK_ACCESS_TOKEN }}
