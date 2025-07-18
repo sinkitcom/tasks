@@ -1,51 +1,52 @@
 # Docker Usage
 
-This document explains how to use the TickTick Export Docker container.
+Simple guide to run the TickTick Export Docker container.
 
 ## Basic Usage
 
 ```bash
-docker run --rm -v $(pwd)/tasks:/app/tasks \
+docker run --rm \
+  -v $(pwd)/tasks:/app/tasks \
   -e TICKTICK_ACCESS_TOKEN=your_token_here \
   ghcr.io/sinkitcom/tasks:latest
 ```
 
-## Environment Variables
+### Alternative: Using .env file
 
-- `TICKTICK_ACCESS_TOKEN` (required): Your TickTick API access token
-
-## Command Line Options
-
-- `--title-in-filename`: Include task title in filename (default: only task ID)
-
-Example:
+Create a `.env` file with your token:
 ```bash
-docker run --rm -v $(pwd)/tasks:/app/tasks \
-  -e TICKTICK_ACCESS_TOKEN=your_token_here \
-  ghcr.io/sinkitcom/tasks:latest \
-  --title-in-filename
+echo "TICKTICK_ACCESS_TOKEN=your_token_here" > .env
 ```
 
-## Volume Mounts
-
-Mount a local directory to `/app/tasks` to export files to your host system:
-
+Then run with the .env file:
 ```bash
-# Export to current directory's 'tasks' folder
--v $(pwd)/tasks:/app/tasks
-
-# Export to specific path
--v /path/to/export:/app/tasks
+docker run --rm \
+  -v $(pwd)/tasks:/app/tasks \
+  --env-file .env \
+  ghcr.io/sinkitcom/tasks:latest
 ```
 
-## Building Locally
+This will:
+- Export your TickTick tasks to the `tasks/` folder in your current directory
+- Create markdown files named by task ID (e.g., `687a0154945ded7741d79393.md`)
+- Organize tasks by project in subdirectories
 
+## Required Setup
+
+1. **Get your access token** - Follow the [access token guide](getting-access-token.md)
+2. **Create export directory** - `mkdir tasks`
+3. **Set your token** - Either use `-e TICKTICK_ACCESS_TOKEN=your_token` or create a `.env` file
+4. **Run the command above**
+
+## Options
+
+- Add `--title-in-filename` to include task titles in filenames (makes longer filenames)
+
+## Volume Mount
+
+The `-v $(pwd)/tasks:/app/tasks` part mounts your local `tasks/` directory to the container's `/app/tasks` directory where files are created.
+
+You can change `$(pwd)/tasks` to any local path you want:
 ```bash
-# Build the image
-docker build -t ticktick-export .
-
-# Run locally built image
-docker run --rm -v $(pwd)/tasks:/app/tasks \
-  -e TICKTICK_ACCESS_TOKEN=your_token_here \
-  ticktick-export
+-v /path/to/your/folder:/app/tasks
 ```
