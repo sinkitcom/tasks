@@ -121,6 +121,16 @@ def create_task_markdown(task, project_name, project_dir, title_in_filename=Fals
     status = task.get('status', 0)
     status_icon = "✅" if status == 2 else "⬜"
     
+    # Determine priority emoji based on API definitions
+    # Priority: None:0, Low:1, Medium:3, High:5
+    priority = task.get('priority', 0)
+    priority_emoji = {
+        0: "⚪",  # None/No priority
+        1: "🟢",  # Low
+        3: "🟡",  # Medium
+        5: "🔴"   # High
+    }.get(priority, "⚪")  # Default to no priority if unknown value
+    
     # Create frontmatter with minimal quotes
     frontmatter = "---\n"
     
@@ -141,8 +151,8 @@ def create_task_markdown(task, project_name, project_dir, title_in_filename=Fals
         frontmatter += f'project: "{project_name}"\n'
     else:
         frontmatter += f"project: {project_name}\n"
-    frontmatter += f"status: {status_icon}\n"
-    frontmatter += f"priority: {task.get('priority', 0)}\n"
+    frontmatter += f"icon: {status_icon}\n"
+    frontmatter += f"priority: {priority_emoji}\n"
     
     # Add dates if they exist
     if task.get('startDate'):
