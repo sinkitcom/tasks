@@ -154,6 +154,18 @@ def create_task_markdown(task, project_name, project_dir, title_in_filename=Fals
     frontmatter += f"icon: {status_icon}\n"
     frontmatter += f"priority: {priority_emoji}\n"
     
+    # Add parent link if this is a subtask
+    if task.get('parentId'):
+        parent_id = task.get('parentId')
+        # We need to determine the parent filename based on the title_in_filename option
+        # For now, we'll use the parent ID, but we could enhance this later
+        if title_in_filename:
+            # We don't have access to parent task title here, so use ID for now
+            parent_filename = parent_id
+        else:
+            parent_filename = parent_id
+        frontmatter += f"parent: [[{parent_filename}]]\n"
+    
     # Add dates if they exist
     if task.get('startDate'):
         frontmatter += f"startDate: {format_date(task.get('startDate'))}\n"
@@ -181,19 +193,42 @@ def create_task_markdown(task, project_name, project_dir, title_in_filename=Fals
     if task.get('content'):
         content += f"## Content\n{task.get('content')}\n\n"
     
-    # Add subtasks if they exist
-    items = task.get('items', [])
-    if items:
+    # Add subtasks if they exist (both from items and child tasks)
+    items = task.get('items', [])  # Legacy subtasks
+    child_tasks = task.get('child_tasks', [])  # Hierarchical child tasks
+    
+    if items or child_tasks:
         content += "## Subtasks\n\n"
+        
+        # Add legacy subtasks (items) - these don't have separate files
         for item in items:
             # Subtask: Normal: 0, Completed: 1
             item_status_icon = "✅" if item.get('status') == 1 else "⬜"
             item_title = item.get('title', 'Untitled Subtask')
             content += f"- {item_status_icon} {item_title}\n"
-            if item.get('startDate'):
-                content += f"  - Start: {format_date(item.get('startDate'))}\n"
-            if item.get('completedTime'):
-                content += f"  - Completed: {format_date(item.get('completedTime'))}\n"
+        
+        # Add hierarchical child tasks as wiki links
+        for child_task in child_tasks:
+            child_title = child_task.get('title', '').strip()
+            child_id = child_task.get('id', '')
+            
+            # Create filename for the child task
+            if title_in_filename:
+                sanitized_title = sanitize_folder_name(child_title)
+                if len(sanitized_title) > 50:
+                    sanitized_title = sanitized_title[:50]
+                child_filename = f"{sanitized_title}_{child_id}"
+            else:
+                child_filename = child_id
+            
+            # Create wiki link - only add pipe and title if title exists
+            if child_title:
+                wiki_link = f"[[{child_filename}|{child_title}]]"
+            else:
+                wiki_link = f"[[{child_filename}]]"
+            
+            content += f"- {wiki_link}\n"
+        
         content += "\n"
     
     # Write file
@@ -222,14 +257,29 @@ def export_project_tasks(access_token, project, title_in_filename=False):
         print(f"Failed to get data for project: {project_name}")
         return
     
-    tasks = project_data.get('tasks', [])
-    if not tasks:
+    all_tasks = project_data.get('tasks', [])
+    if not all_tasks:
         print(f"No tasks found in project: {project_name}")
         return
     
-    # Create markdown files for each task
+    print(f"Found {len(all_tasks)} total tasks")
+    
+    # Create a map of child tasks by parent ID for easy lookup
+    children_by_parent = {}
+    for task in all_tasks:
+        parent_id = task.get('parentId')
+        if parent_id:
+            if parent_id not in children_by_parent:
+                children_by_parent[parent_id] = []
+            children_by_parent[parent_id].append(task)
+    
+    # Create markdown files for ALL tasks (both main and sub)
     created_files = []
-    for task in tasks:
+    for task in all_tasks:
+        # Add child tasks to the task object for processing
+        task_id = task.get('id')
+        task['child_tasks'] = children_by_parent.get(task_id, [])
+        
         filepath = create_task_markdown(task, project_name, project_dir, title_in_filename)
         if filepath:
             created_files.append(filepath)
